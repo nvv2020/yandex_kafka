@@ -57,8 +57,7 @@
 
 ```json
 {
-  "action": "string",
-  "word": "string"
+  "words": "string"
 }
 ```
 
@@ -79,6 +78,7 @@
 ### Требования
 
 Docker
+
 Docker Compose
 
 ## Инструкция по запуску
@@ -150,7 +150,7 @@ Docker Compose
   "blocked_user_id": "user1",
   "action": "block"
   }
-    ```
+  ```
 
   Печатаем сообщение в топик messages
 
