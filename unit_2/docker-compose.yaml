@@ -1,0 +1,194 @@
+services:
+  kafka-0:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-0
+    hostname: kafka-0
+    ports:
+      - "19092:19092"
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_NODE_ID=0
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - CLUSTER_ID=BiED99nTRQOteJCv9WiYNw
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:19092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-0:9092,EXTERNAL://localhost:19092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    volumes:
+      - kafka_0_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "kafka-0:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - kafka-network
+
+  kafka-1:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-1
+    hostname: kafka-1
+    ports:
+      - "19093:19093"
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - CLUSTER_ID=BiED99nTRQOteJCv9WiYNw
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:19093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-1:9092,EXTERNAL://localhost:19093
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    volumes:
+      - kafka_1_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "kafka-1:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - kafka-network
+
+  kafka-2:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-2
+    hostname: kafka-2
+    ports:
+      - "19094:19094"
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_NODE_ID=2
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=0@kafka-0:9093,1@kafka-1:9093,2@kafka-2:9093
+      - CLUSTER_ID=BiED99nTRQOteJCv9WiYNw
+      - KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:19094
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-2:9092,EXTERNAL://localhost:19094
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    volumes:
+      - kafka_2_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--list", "--bootstrap-server", "kafka-2:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - kafka-network
+
+  ksqldb-server:
+      image: confluentinc/ksqldb-server:latest
+      container_name: ksqldb-server
+      hostname: ksqldb-server
+      ports:
+        - "8088:8088"
+      environment:
+        - KSQL_LISTENERS=http://0.0.0.0:8088
+        - KSQL_BOOTSTRAP_SERVERS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+        - KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE=true
+        - KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE=true
+        - KSQL_KSQL_SERVICE_ID=ksql_service_1
+        - KSQL_KSQL_STREAMS_AUTO_OFFSET_RESET=earliest
+      depends_on:
+        - kafka-0
+        - kafka-1
+        - kafka-2
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:8088/healthcheck"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+      networks:
+        - kafka-network
+
+  ksqldb-cli:
+    image: confluentinc/ksqldb-cli:latest
+    container_name: ksqldb-cli
+    hostname: ksqldb-cli
+    entrypoint: /bin/sh
+    command: -c "sleep infinity"
+    depends_on:
+      - ksqldb-server
+    networks:
+      - kafka-network
+    tty: true
+    stdin_open: true
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    hostname: kafka-ui
+    ports:
+      - "8085:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local-kraft-cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka-0:9092,kafka-1:9092,kafka-2:9092
+      - KAFKA_CLUSTERS_0_KRAFTENABLED=true
+      - KAFKA_CLUSTERS_0_METRICS_PORT=9092
+    depends_on:
+      - kafka-0
+      - kafka-1
+      - kafka-2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - kafka-network
+
+  kafka-topics-setup:
+      image: confluentinc/cp-kafka:latest
+      container_name: kafka-topics-setup
+      depends_on:
+        kafka-0:
+          condition: service_healthy
+      command: >
+        bash -c "
+          echo 'Creating Kafka topics...'
+          kafka-topics --bootstrap-server kafka-0:9092 --create --topic messages --partitions 3 --replication-factor 2
+          kafka-topics --bootstrap-server kafka-0:9092 --create --topic blocked-users --partitions 3 --replication-factor 2
+          kafka-topics --bootstrap-server kafka-0:9092 --create --topic filtered-messages --partitions 3 --replication-factor 2
+          kafka-topics --bootstrap-server kafka-0:9092 --create --topic ban-word-updates --partitions 3 --replication-factor 2
+          echo 'All topics created successfully!'
+          kafka-topics --bootstrap-server kafka-0:9092 --list
+        "
+      profiles: ["setup"]
+      networks:
+        - kafka-network
+
+  message-processor:
+    container_name: message-processor
+    build: ./app/.
+    depends_on:
+      - kafka-0
+      - kafka-1
+      - kafka-2
+      - ksqldb-server
+    ports:
+      - "6066:6066"
+    environment:
+      KAFKA_BROKERS: kafka-0:9092,kafka-1:9092,kafka-2:9092
+      MESSAGES_TOPIC: messages
+      BLOCKED_USERS_TOPIC: blocked-users
+      FILTERED_MESSAGES_TOPIC: filtered-messages
+    volumes:
+      - ./app/.:/app
+    networks:
+      - kafka-network
+
+volumes:
+  kafka_0_data:
+  kafka_1_data:
+  kafka_2_data:
+
+networks:
+  kafka-network:
+    driver: bridge
