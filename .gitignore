@@ -3,3 +3,8 @@ __pycache__
 message-processor-data
 .venv
 lesson_2/
+lesson_3/
+lesson_4/
+unit_3/
+confluent-hub-components/
+.env
