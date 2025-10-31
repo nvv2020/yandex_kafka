@@ -43,6 +43,9 @@ PostgreSQL → Kafka Connect → Kafka Brokers → Schema Registry → Kafka UI
 
 ## Задание 1. Настройка Debezium Connector для PostgreSQL
 
+0. В git репозиторий ДЗ не включена папка confluent-hub-components с коннектором.
+Для того, чтобы проект заработал необходио создать папку confluent-hub-components и подгрузить в нее с сайта https://debezium.io/documentation/reference/stable/install.html библиотеку коннектора.
+
 1. Выполним поднятие сервисов с помощью команды
 
 ```bash
@@ -123,13 +126,17 @@ python kafka_consumer.py
 
 Проапдейтим строку:
 
+```sql
 update orders set product_name = 'Super Puper Laptop' where id = 1;
+```
 
 ![alt text](image-5.png)
 
 Удалим две строки:
 
+```sql
 delete from orders where id in (2,3);
+```
 
 ![alt text](image-6.png)
 
