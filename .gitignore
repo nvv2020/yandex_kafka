@@ -8,3 +8,7 @@ lesson_4/
 unit_3/
 confluent-hub-components/
 .env
+infra_stage
+from_git
+.terraform*
+nifi_data

@@ -1,0 +1,9 @@
+confluent-kafka>=2.1.1
+jsonschema>=4.19.0
+python-dotenv>=1.0.0
+certifi==2025.11.12
+httpx~=0.28.1
+cachetools==6.2.2
+authlib==1.6.5
+requests==2.31.0
+orjson==3.11.5
