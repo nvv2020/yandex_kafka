@@ -1,0 +1,123 @@
+networks:
+  kafka-network:
+    external: true
+    name: final_confluent
+
+services:
+
+  mirrormaker:
+    image: confluentinc/cp-kafka:7.3.0
+    hostname: mirrormaker
+    container_name: mirrormaker
+    environment:
+      KAFKA_MM_SESSION_TIMEOUT_MS: "30000"
+      KAFKA_MM_HEARTBEAT_INTERVAL_MS: "10000"
+      KAFKA_MM_REQUEST_TIMEOUT_MS: "60000"
+      KAFKA_LOG4J_OPTS: "-Dlog4j.configuration=file:/etc/kafka/connect-log4j.properties"
+      KAFKA_OPTS: "-XX:-UseContainerSupport -XX:+UnlockExperimentalVMOptions -XX:+DisableAttachMechanism -XX:+UseG1GC"
+      JAVA_TOOL_OPTIONS: "-XX:-UseContainerSupport"                                                                             
+    command:
+      - bash
+      - -c
+      - |
+        echo "Starting MirrorMaker 2..."
+        echo "KAFKA_OPTS: ${KAFKA_OPTS}"
+        echo "JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS}"
+        /usr/bin/connect-mirror-maker /etc/mm2.properties
+    volumes:
+      - ./files/mm2.properties:/etc/mm2.properties:ro
+      - ./certs/kafka-1-creds:/etc/kafka/secrets:ro
+    networks:
+      - kafka-network      
+
+  kafka-secondary-0:
+    image: bitnamilegacy/kafka:3.7
+    restart: always
+    container_name: kafka-secondary-0
+    hostname: kafka-secondary-0
+    ports:
+      - "9096:9094"
+    environment:
+      KAFKA_CFG_NODE_ID: 10 
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-secondary-0:9092,EXTERNAL://kafka-secondary-0:9094
+      KAFKA_ENABLE_KRAFT: yes
+      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_KRAFT_CLUSTER_ID: secondary
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 10@kafka-secondary-0:9093,11@kafka-secondary-1:9093,12@kafka-secondary-2:9093
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 3
+    volumes:
+      - kafka_secondary_0_data:/bitnami/kafka
+    networks:
+      - kafka-network
+
+  kafka-secondary-1:
+    image: bitnamilegacy/kafka:3.7
+    restart: always
+    container_name: kafka-secondary-1
+    hostname: kafka-secondary-1
+    ports:
+      - "9098:9094"
+    environment:
+      KAFKA_CFG_NODE_ID: 11
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-secondary-1:9092,EXTERNAL://kafka-secondary-1:9094
+      KAFKA_ENABLE_KRAFT: yes
+      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_KRAFT_CLUSTER_ID: secondary
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 10@kafka-secondary-0:9093,11@kafka-secondary-1:9093,12@kafka-secondary-2:9093
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 3
+    volumes:
+      - kafka_secondary_1_data:/bitnami/kafka
+    networks:
+      - kafka-network      
+
+  kafka-secondary-2:
+    image: bitnamilegacy/kafka:3.7
+    restart: always
+    container_name: kafka-secondary-2
+    hostname: kafka-secondary-2
+    ports:
+      - "9099:9094"
+    environment:
+      KAFKA_CFG_NODE_ID: 12
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka-secondary-2:9092,EXTERNAL://kafka-secondary-2:9094
+      KAFKA_ENABLE_KRAFT: yes
+      ALLOW_PLAINTEXT_LISTENER: yes
+      KAFKA_KRAFT_CLUSTER_ID: secondary
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_PROCESS_ROLES: broker,controller
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 10@kafka-secondary-0:9093,11@kafka-secondary-1:9093,12@kafka-secondary-2:9093
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_CFG_DEFAULT_REPLICATION_FACTOR: 3
+    volumes:
+      - kafka_secondary_2_data:/bitnami/kafka
+    networks:
+      - kafka-network      
+
+volumes:
+  kafka_secondary_0_data:
+  kafka_secondary_1_data:
+  kafka_secondary_2_data:

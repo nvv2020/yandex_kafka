@@ -1,0 +1,20 @@
+global:
+route:
+  # По какому принципу группировать алерты
+  group_by: ['alertname']
+  # Время ожидания перед отправкой первого уведомления для новой группы
+  group_wait: 10s
+  # Интервал между уведомлениями для существующей группы
+  group_interval: 10s
+  # Интервал для повторной отправки алерта, если проблема не решена
+  repeat_interval: 1h
+  # Имя ресивера, который будет обрабатывать все алерты по умолчанию
+  receiver: 'telegram-bot'
+
+receivers:
+  - name: 'telegram-bot'
+    # Конфигурация для Telegram
+    telegram_configs:
+      - bot_token: '8211811275:AAFGLtPWABaqxCVGFwQSrdwhtVf7ow6QN_A'
+        chat_id: -1003398810281
+        send_resolved: true

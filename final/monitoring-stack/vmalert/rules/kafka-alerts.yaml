@@ -1,0 +1,25 @@
+groups:
+  - name: kafka-alerts
+    rules:
+      - alert: KafkaUnderReplicatedPartitions
+        expr: sum(kafka_server_replicamanager_underreplicatedpartitions) > 0
+        for: 1m  # Минимальное время, в течение которого условие должно быть истинным
+        labels:
+          severity: critical
+          component: kafka
+          source: vmalert
+        annotations:
+          summary: "Kafka имеет under-replicated партиции"
+          description: |
+            В кластере Kafka обнаружено {{ $value }} under-replicated партиций.
+            Это означает, что некоторые реплики партиций отстают или недоступны.
+            
+            Проверьте:
+            1. Состояние брокеров (все ли онлайн)
+            2. Сеть между брокерами
+            3. Дисковое пространство на брокерах
+            4. Логи Kafka на проблемных брокерах
+            
+            Топики с проблемами можно найти через:
+            kafka-topics --bootstrap-server <broker> --describe | grep -E "(Leader:-1|UnderReplicated)"
+          runbook_url: "https://kafka.apache.org/documentation/#monitoring"

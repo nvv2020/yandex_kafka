@@ -1,0 +1,153 @@
+networks:
+  monitoring:
+    external: true
+    name: final_confluent
+
+services:
+  vmstorage-1:
+    image: victoriametrics/vmstorage:latest
+    container_name: vmstorage-1
+    command:
+      - "--storageDataPath=/storage"
+      - "--retentionPeriod=1"
+    volumes:
+      - vmstorage-data-1:/storage
+    ports:
+      - "8400:8400"
+      - "8401:8401"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  vmstorage-2:
+    image: victoriametrics/vmstorage:latest
+    container_name: vmstorage-2
+    command:
+      - "--storageDataPath=/storage"
+      - "--retentionPeriod=1"
+    volumes:
+      - vmstorage-data-2:/storage
+    ports:
+      - "8402:8402"
+      - "8403:8403"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  vmstorage-3:
+    image: victoriametrics/vmstorage:latest
+    container_name: vmstorage-3
+    command:
+      - "--storageDataPath=/storage"
+      - "--retentionPeriod=1"
+    volumes:
+      - vmstorage-data-3:/storage
+    ports:
+      - "8404:8404"
+      - "8405:8405"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  vmselect:
+    image: victoriametrics/vmselect:latest
+    container_name: vmselect
+    command:
+      - "--storageNode=vmstorage-1:8401"
+      - "--storageNode=vmstorage-2:8403"
+      - "--storageNode=vmstorage-3:8405"
+      - "--httpListenAddr=:8481"
+    ports:
+      - "8481:8481"
+    depends_on:
+      - vmstorage-1
+      - vmstorage-2
+      - vmstorage-3
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  vminsert:
+    image: victoriametrics/vminsert:latest
+    container_name: vminsert
+    command:
+      - "--storageNode=vmstorage-1:8400"
+      - "--storageNode=vmstorage-2:8402"
+      - "--storageNode=vmstorage-3:8404"
+      - "--httpListenAddr=:8480"
+    ports:
+      - "8480:8480"
+    depends_on:
+      - vmstorage-1
+      - vmstorage-2
+      - vmstorage-3
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  vmagent:
+    image: victoriametrics/vmagent:latest
+    container_name: vmagent
+    volumes:
+      - ./vmagent/config.yml:/etc/vmagent/config.yml
+    command:
+      - "--promscrape.config=/etc/vmagent/config.yml"
+      - "--remoteWrite.url=http://vminsert:8480/insert/0/prometheus/"
+    ports:
+      - "8429:8429"
+    depends_on:
+      - vminsert
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager/config.yml:/etc/alertmanager/config.yml
+    command:
+      - "--config.file=/etc/alertmanager/config.yml"
+      - "--storage.path=/alertmanager"
+    ports:
+      - "9193:9093"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  vmalert:
+    image: victoriametrics/vmalert:latest
+    container_name: vmalert
+    volumes:
+      - ./vmalert/rules:/etc/vmalert/rules
+    command:
+      - "--datasource.url=http://vmselect:8481/select/0/prometheus/"
+      - "--notifier.url=http://alertmanager:9093"
+      - "--rule=/etc/vmalert/rules/*.yaml"
+    depends_on:
+      - vmselect
+      - alertmanager
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoring
+    restart: unless-stopped
+
+volumes:
+  vmstorage-data-1:
+  vmstorage-data-2:
+  vmstorage-data-3:
+  grafana-data:

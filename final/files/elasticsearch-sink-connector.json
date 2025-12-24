@@ -1,0 +1,14 @@
+{
+        "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+        "tasks.max": "1",
+        "topics": "primary.shop-clear",
+        "connection.url": "http://elasticsearch:9200",
+        "connection.timeout.ms": "10000",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter.schemas.enable": "false",
+        "schema.ignore": "true",
+        "key.ignore": "true",
+        "behavior.on.null.values": "ignore",
+        "elasticsearch.security.protocol": "PLAINTEXT",
+
+}

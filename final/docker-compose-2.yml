@@ -1,0 +1,74 @@
+networks:
+  kafka-network:
+    external: true
+    name: final_confluent
+
+services:
+
+
+
+  ksqldb-server:
+    image: confluentinc/ksqldb-server:latest
+    container_name: ksqldb-server
+    hostname: ksqldb-server
+    ports:
+      - "8088:8088"
+    environment:
+      - KSQL_BOOTSTRAP_SERVERS=kafka-secondary-0:9092,kafka-secondary-1:9092,kafka-secondary-2:9092
+    # volumes:
+    # healthcheck:
+    #   test: ["CMD", "curl", "-k", "-f", "https://localhost:8089/healthcheck"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    networks:
+      - kafka-network  
+
+  data-publisher:
+    build:
+      context: ./scripts/data-publisher
+      dockerfile: Dockerfile
+    container_name: data-publisher
+    volumes:
+      - ./data:/app/data:rw
+      - ./certs/kafka-client:/app/certs:ro
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9093,kafka-2:9095,kafka-3:9097
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      # DATA_DIR: /app/data
+      # TOPIC_NAME: shop-raw
+      # SSL_ENABLED: "true"
+    networks:
+      - kafka-network
+
+  control-ban-words:
+    build:
+      context: ./scripts/control-ban-words
+      dockerfile: Dockerfile  
+    container_name: control-ban-words
+    ports:
+      - "6068:6068"
+    environment:
+      KAFKA_BROKERS: kafka-1:9093,kafka-2:9095,kafka-3:9097
+      MESSAGES_TOPIC: ban-words
+    volumes:
+      - ./scripts/control-ban-words/app/.:/app
+      - ./certs/kafka-client:/app/certs:ro
+    networks:
+      - kafka-network
+
+  client-api:
+    build:
+      context: ./scripts/client-api
+      dockerfile: Dockerfile  
+    container_name: client-api
+    ports:
+      - "6078:6078"
+    environment:
+      KAFKA_BROKERS: kafka-1:9093,kafka-2:9095,kafka-3:9097
+      MESSAGES_TOPIC: client-searches
+    volumes:
+      - ./scripts/client-api/app/.:/app
+      - ./certs/kafka-client:/app/certs:ro
+    networks:
+      - kafka-network

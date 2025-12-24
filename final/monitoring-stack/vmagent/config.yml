@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'kafka-brokers'
+    static_configs:
+      - targets: 
+          - 'kafka-1:9999'
+          - 'kafka-2:9999'
+          - 'kafka-3:9999'
+        labels:
+          cluster: 'final_confluent'
+          job: 'kafka-brokers'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  - job_name: 'victoriametrics'
+    static_configs:
+      - targets: ['vminsert:8480', 'vmselect:8481', 'vmagent:8429']

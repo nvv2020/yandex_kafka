@@ -1,0 +1,117 @@
+networks:
+  kafka-network:
+    external: true
+    name: project_confluent
+
+services:
+  hadoop-namenode:
+    image: apache/hadoop:3.4.1
+    container_name: hadoop-namenode
+    hostname: hadoop-namenode
+    user: "root"
+    restart: always
+    platform: linux/amd64
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"   # Ограничение использования CPU
+          memory: "1g"  # Ограничение использования RAM
+    shm_size: 10G
+    ports:
+      - "9870:9870"  # HTTP-порт для Web UI HDFS NameNode
+      - "9000:9000"  # RPC порт для запросов к NameNode
+    volumes:
+      - ./hadoop/config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ./hadoop/config/hdfs-site-namenode.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+      - ./hadoop/namenode_entrypoint.sh:/namenode_entrypoint.sh
+    entrypoint: [ "/bin/bash", "/namenode_entrypoint.sh" ]
+    command: [ "hdfs", "namenode" ]
+    networks:
+      - kafka-network
+
+  hadoop-datanode-1:
+    image: apache/hadoop:3.4.1
+    container_name: hadoop-datanode-1
+    hostname: hadoop-datanode-1
+    user: "root"
+    restart: always
+    platform: linux/amd64
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"   # Ограничение использования CPU
+          memory: "1g"  # Ограничение использования RAM
+    shm_size: 10G
+    depends_on:
+      - hadoop-namenode
+    ports:
+      - "9864:9864"  # HTTP-порт для Web UI DataNode №1
+      - "9970:9970"  # RPC порт для запросов от NameNode
+    volumes:
+      - ./hadoop/config/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml
+      - ./hadoop/config/hdfs-site-datanode-1.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+      - ./hadoop/datanode_entrypoint.sh:/datanode_entrypoint.sh
+    entrypoint: [ "/bin/bash", "/datanode_entrypoint.sh" ]
+    command: [ "hdfs", "datanode" ]
+    networks:
+      - kafka-network
+
+  # # Apache Spark master node
+  # spark-master:
+  #   image: bitnamilegacy/spark:3.5.4
+  #   container_name: spark-master
+  #   ports:
+  #     - "8080:8080"  # HTTP-порт для Web UI Spark
+  #     - "7077:7077"  # Порт для Spark master-сервис
+  #   environment:
+  #     SPARK_MODE: master
+  #     SPARK_MASTER_HOST: spark-master
+  #   volumes:
+  #     - "${PATH_TO_NFS}/certs/kafka-client:/kafka-client-creds:ro"
+  #   networks:
+  #     - kafka-network
+
+  # # Apache Spark worker node №1
+  # spark-worker-1:
+  #   image: bitnamilegacy/spark:3.5.4
+  #   container_name: spark-worker-1
+  #   depends_on:
+  #     - spark-master
+  #   environment:
+  #     SPARK_MODE: worker
+  #     SPARK_MASTER_URL: spark://spark-master:7077
+  #     KAFKA_BROKER: kafka-broker:9092
+  #   volumes:
+  #     - "${PATH_TO_NFS}/certs/kafka-client:/kafka-client-creds:ro"
+  #     - ./spark-recommender/jobs:/jobs:ro"
+  #     - ./spark-recommender/data:/data:ro"
+  #   command: >
+  #     bash -c "
+  #     echo 'Waiting for services to be ready...' &&
+  #     sleep 60 &&
+  #     spark-submit \
+  #       --master $$SPARK_MASTER_URL \
+  #       --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 \
+  #       --conf spark.executor.memory=2G \
+  #       --conf spark.driver.memory=1G \
+  #       /jobs/CompleteRecommender.jar
+  #     "      
+  #   networks:
+  #     - kafka-network
+
+  # # Apache Spark worker node №2
+  # spark-worker-2:
+  #   image: bitnamilegacy/spark:3.5.4
+  #   container_name: spark-worker-2
+  #   depends_on:
+  #     - spark-master
+  #   environment:
+  #     SPARK_MODE: worker
+  #     SPARK_MASTER_URL: spark://spark-master:7077
+  #   volumes:
+  #     - "${PATH_TO_NFS}/certs/kafka-client:/kafka-client-creds:ro"
+  #   networks:
+  #     - kafka-network
+
+
+     
